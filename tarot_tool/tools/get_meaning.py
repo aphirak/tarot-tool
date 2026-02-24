@@ -1,7 +1,7 @@
 """OpenClaw Tool: get_card_meaning."""
 from __future__ import annotations
 
-from typing import Literal, Optional
+from typing import Any, Literal, Optional
 
 from tarot_tool.cards.deck import get_deck
 from tarot_tool.models.card import TarotCard
@@ -12,7 +12,7 @@ TOOL_DEFINITION = {
         "Retrieve full meaning, keywords, and metadata for a specific tarot card. "
         "Supports exact name match or partial/case-insensitive search."
     ),
-    "parameters": {
+    "input_schema": {
         "type": "object",
         "properties": {
             "card_name": {
@@ -96,3 +96,23 @@ def _find_card(card_name: str) -> TarotCard:
         raise LookupError(f"Multiple cards match '{card_name}': {names}. Please be more specific.")
 
     raise LookupError(f"No card found matching '{card_name}'.")
+
+
+def tool_handler(params: dict[str, Any]) -> dict[str, Any]:
+    """
+    OpenClaw-compatible handler for get_card_meaning.
+
+    Args:
+        params: Dict with keys matching get_card_meaning() signature.
+
+    Returns:
+        {"success": True, "data": {...}} or {"success": False, "error": "...", "error_type": "..."}
+    """
+    try:
+        result = get_card_meaning(
+            card_name=params["card_name"],
+            orientation=params.get("orientation", "both"),  # type: ignore[arg-type]
+        )
+        return {"success": True, "data": result}
+    except Exception as e:
+        return {"success": False, "error": str(e), "error_type": type(e).__name__}

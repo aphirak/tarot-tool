@@ -1,12 +1,14 @@
 """OpenClaw Tool: list_spread_formats."""
 from __future__ import annotations
 
+from typing import Any
+
 from tarot_tool.spreads.registry import list_spreads
 
 TOOL_DEFINITION = {
     "name": "list_spread_formats",
     "description": "List all available tarot spread formats with position descriptions.",
-    "parameters": {
+    "input_schema": {
         "type": "object",
         "properties": {
             "include_positions": {
@@ -57,3 +59,22 @@ def list_spread_formats(include_positions: bool = True) -> list[dict]:
     })
 
     return result
+
+
+def tool_handler(params: dict[str, Any]) -> dict[str, Any]:
+    """
+    OpenClaw-compatible handler for list_spread_formats.
+
+    Args:
+        params: Dict with optional key 'include_positions' (bool).
+
+    Returns:
+        {"success": True, "data": [...]} or {"success": False, "error": "...", "error_type": "..."}
+    """
+    try:
+        result = list_spread_formats(
+            include_positions=bool(params.get("include_positions", True)),
+        )
+        return {"success": True, "data": result}
+    except Exception as e:
+        return {"success": False, "error": str(e), "error_type": type(e).__name__}

@@ -1,7 +1,7 @@
 """OpenClaw Tool: draw_tarot_cards."""
 from __future__ import annotations
 
-from typing import Optional
+from typing import Any, Optional
 
 from tarot_tool.cards.deck import get_deck
 from tarot_tool.engine.rng import draw_cards as rng_draw
@@ -15,7 +15,7 @@ TOOL_DEFINITION = {
         "Draw tarot cards for a reading. Returns drawn cards with full metadata and meanings. "
         "Use list_spread_formats to enumerate available spread IDs."
     ),
-    "parameters": {
+    "input_schema": {
         "type": "object",
         "properties": {
             "spread_id": {
@@ -82,3 +82,25 @@ def draw_tarot_cards(
         drawn_cards=drawn_cards,
         question=question,
     )
+
+
+def tool_handler(params: dict[str, Any]) -> dict[str, Any]:
+    """
+    OpenClaw-compatible handler for draw_tarot_cards.
+
+    Args:
+        params: Dict with keys matching draw_tarot_cards() signature.
+
+    Returns:
+        {"success": True, "data": {...}} or {"success": False, "error": "...", "error_type": "..."}
+    """
+    try:
+        result = draw_tarot_cards(
+            spread_id=params["spread_id"],
+            question=params.get("question"),
+            reversal_probability=float(params.get("reversal_probability", 0.35)),
+            custom_positions=params.get("custom_positions"),
+        )
+        return {"success": True, "data": result.model_dump()}
+    except Exception as e:
+        return {"success": False, "error": str(e), "error_type": type(e).__name__}

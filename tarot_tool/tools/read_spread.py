@@ -1,7 +1,7 @@
 """OpenClaw Tool: read_spread — full reading context for LLM interpretation."""
 from __future__ import annotations
 
-from typing import Literal, Optional
+from typing import Any, Literal, Optional
 
 from tarot_tool.cards.deck import get_deck
 from tarot_tool.engine.context_builder import build_reading_context
@@ -16,7 +16,7 @@ TOOL_DEFINITION = {
         "Perform a complete tarot reading. Returns a structured ReadingContext with "
         "all card meanings, elemental analysis, numerology, and a ready-to-use LLM system prompt."
     ),
-    "parameters": {
+    "input_schema": {
         "type": "object",
         "properties": {
             "spread_id": {
@@ -103,3 +103,26 @@ def read_spread(
         question=question,
         reading_style=reading_style,
     )
+
+
+def tool_handler(params: dict[str, Any]) -> dict[str, Any]:
+    """
+    OpenClaw-compatible handler for read_spread.
+
+    Args:
+        params: Dict with keys matching read_spread() signature.
+
+    Returns:
+        {"success": True, "data": {...}} or {"success": False, "error": "...", "error_type": "..."}
+    """
+    try:
+        result = read_spread(
+            spread_id=params["spread_id"],
+            question=params.get("question"),
+            reversal_probability=float(params.get("reversal_probability", 0.35)),
+            reading_style=params.get("reading_style", "combined"),  # type: ignore[arg-type]
+            custom_positions=params.get("custom_positions"),
+        )
+        return {"success": True, "data": result.model_dump()}
+    except Exception as e:
+        return {"success": False, "error": str(e), "error_type": type(e).__name__}

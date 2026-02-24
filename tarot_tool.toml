@@ -1,0 +1,36 @@
+# tarot_tool.toml — OpenClaw Skill Manifest
+# Place this file in your OpenClaw skills directory or reference it from your
+# OpenClaw configuration to register the tarot_tool skill.
+
+[skill]
+name        = "tarot_tool"
+version     = "0.1.0"
+description = "Tarot card reading tools for OpenClaw AI agents. Provides cryptographically secure card draws, rich RWS card meanings, 9 spread formats, and fully assembled LLM reading contexts."
+author      = "Aphirak JANSANG <aphirak.j@ku.ac.th>"
+entry_point = "tarot_tool.server:main"
+language    = "python"
+requires_python = ">=3.11"
+
+[[skill.tools]]
+name        = "draw_tarot_cards"
+description = "Draw tarot cards for a reading. Returns drawn cards with full metadata and meanings."
+
+[[skill.tools]]
+name        = "get_card_meaning"
+description = "Retrieve full meaning, keywords, and metadata for a specific tarot card."
+
+[[skill.tools]]
+name        = "list_spread_formats"
+description = "List all available tarot spread formats with position descriptions."
+
+[[skill.tools]]
+name        = "read_spread"
+description = "Perform a complete tarot reading. Returns a structured ReadingContext with system_prompt_injection for LLM interpretation."
+
+[skill.install]
+# Run this after cloning to install the skill and its dependencies:
+#   pip install -e ".[dev]"
+# Or for production:
+#   pip install tarot-tool
+package = "tarot-tool"
+editable = true
