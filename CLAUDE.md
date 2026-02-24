@@ -8,7 +8,7 @@
 - 9 spread formats
 - OpenClaw MCP skill interface (stdio JSON protocol)
 - User-facing CLI (`tarot` command)
-- 120 tests, ~95% coverage
+- 127 tests, ~95% coverage
 
 ---
 
@@ -37,7 +37,7 @@ tarot-tool/
     ├── engine/
     │   ├── rng.py               # CSPRNG draw + Fisher-Yates shuffle
     │   ├── shuffle.py           # shuffle_deck()
-    │   └── context_builder.py   # ReadingContext assembly
+    │   └── context_builder.py   # ReadingContext assembly + build_draw_prompt()
     ├── spreads/
     │   ├── registry.py          # get_spread(), list_spreads()
     │   ├── single.py            # 1-card
@@ -59,8 +59,8 @@ tarot-tool/
         ├── test_deck.py         # 14 tests — deck completeness, no duplicates
         ├── test_rng.py          # 13 tests — CSPRNG, seeding, reversal distribution
         ├── test_spreads.py      # 10 tests — registry, custom spread, positions
-        ├── test_context.py      # 27 tests — ReadingContext, all tool functions
-        ├── test_handlers.py     # 24 tests — tool_handler() shapes, call_tool()
+        ├── test_context.py      # 31 tests — ReadingContext, all tool functions
+        ├── test_handlers.py     # 27 tests — tool_handler() shapes, call_tool()
         └── test_cli.py          # 32 tests — all CLI subcommands, --json, error exits
 ```
 
@@ -196,6 +196,15 @@ class TarotCard(BaseModel):
     image_key: str
 ```
 
+### `SpreadResult` (draw output)
+```python
+class SpreadResult(BaseModel):
+    spread: SpreadDefinition
+    drawn_cards: list[DrawnCard]
+    question: Optional[str] = None
+    interpretation_prompt: str = ""  # Ready-to-use LLM context for this draw
+```
+
 ### `ReadingContext` (LLM payload)
 ```python
 class ReadingContext(BaseModel):
@@ -209,7 +218,8 @@ class ReadingContext(BaseModel):
     numerology_notes: list[str]
     dominant_suit: Optional[str]
     reading_timestamp: str          # ISO 8601
-    system_prompt_injection: str    # Ready-to-prepend LLM system prompt
+    system_prompt_injection: str    # Complete LLM system prompt: full card meanings,
+                                    # thematic context, numerology, narrative guidance
 ```
 
 ---
@@ -258,7 +268,7 @@ black tarot_tool/
 mypy tarot_tool/
 ```
 
-**Test results**: 120 tests, ~95% coverage.
+**Test results**: 127 tests, ~95% coverage.
 
 ---
 
