@@ -4,6 +4,7 @@ from __future__ import annotations
 from typing import Any, Optional
 
 from tarot_tool.cards.deck import get_deck
+from tarot_tool.engine.context_builder import build_draw_prompt
 from tarot_tool.engine.rng import draw_cards as rng_draw
 from tarot_tool.models.card import DrawnCard
 from tarot_tool.models.spread import SpreadResult
@@ -81,6 +82,7 @@ def draw_tarot_cards(
         spread=spread,
         drawn_cards=drawn_cards,
         question=question,
+        interpretation_prompt=build_draw_prompt(spread, drawn_cards, question),
     )
 
 

@@ -92,7 +92,7 @@ def build_reading_context(
     narrative_hints = _extract_narrative_hints(spread, drawn_cards)
     system_prompt = _build_system_prompt(
         spread, drawn_cards, question, reading_style,
-        element_distribution, dominant_suit
+        element_distribution, thematic_summary, numerology_notes, narrative_hints,
     )
 
     return ReadingContext(
@@ -214,25 +214,75 @@ def _build_system_prompt(
     question: Optional[str],
     reading_style: str,
     element_distribution: dict[str, int],
-    dominant_suit: Optional[str],
+    thematic_summary: str,
+    numerology_notes: list[str],
+    narrative_hints: list[str],
 ) -> str:
-    """Construct the ready-to-use LLM system prompt fragment."""
-    question_context = (
-        f'The seeker asks: "{question}"' if question else "No specific question was posed; read holistically."
-    )
-    card_lines = "\n".join(
-        f"  {i + 1}. {dc.position_label}: {dc.card.name}"
-        f"{'  (reversed)' if dc.is_reversed else ''} — {', '.join(dc.active_keywords[:3])}"
-        for i, dc in enumerate(drawn_cards)
-    )
-    elem_str = ", ".join(f"{k}: {v}" for k, v in sorted(element_distribution.items()))
-    dominant_str = dominant_suit.replace("_", " ").title() if dominant_suit else "None"
+    """Construct the ready-to-use LLM system prompt with full card meanings and context."""
+    question_str = f'"{question}"' if question else "Open reading — no specific question"
+    elem_str = ", ".join(f"{k}: {v}" for k, v in sorted(element_distribution.items())) or "undefined"
+
+    card_sections: list[str] = []
+    for i, dc in enumerate(drawn_cards):
+        orientation = "reversed" if dc.is_reversed else "upright"
+        keywords_str = ", ".join(dc.active_keywords)
+        card_sections.append(
+            f"### Position {i + 1}: {dc.position_label}\n"
+            f"Card: {dc.card.name} ({orientation})\n"
+            f"Keywords: {keywords_str}\n"
+            f"Meaning: {dc.active_meaning}"
+        )
+
+    cards_block = "\n\n".join(card_sections)
+    numerology_block = "\n".join(numerology_notes) if numerology_notes else "No significant numerology patterns."
+    hints_block = "\n".join(f"- {h}" for h in narrative_hints)
 
     return (
-        f"You are reading a {reading_style} tarot spread ({spread.name}).\n"
-        f"{question_context}\n"
-        f"Cards drawn:\n{card_lines}\n"
-        f"Elemental balance: {elem_str or 'undefined'}\n"
-        f"Dominant theme: {dominant_str}\n"
-        f"Interpret each card in its positional context. Note interactions between cards."
+        f"You are an expert tarot reader performing a {reading_style} reading.\n\n"
+        f"## Spread: {spread.name}\n"
+        f"## Question: {question_str}\n\n"
+        f"## Cards Drawn\n\n"
+        f"{cards_block}\n\n"
+        f"## Thematic Context\n"
+        f"{thematic_summary}\n"
+        f"Element distribution: {elem_str}\n"
+        f"{numerology_block}\n\n"
+        f"## Spread Narrative Guidance\n"
+        f"{hints_block}\n\n"
+        f"## Your Task\n"
+        f"Provide the seeker with a cohesive interpretation. Address each card in its positional "
+        f"context, weave the cards into a unified narrative, and note any elemental or thematic "
+        f"patterns across the spread."
+    )
+
+
+def build_draw_prompt(
+    spread: SpreadDefinition,
+    drawn_cards: list[DrawnCard],
+    question: Optional[str],
+) -> str:
+    """Build a ready-to-use LLM context prompt for a raw card draw (no thematic analysis)."""
+    question_str = f'"{question}"' if question else "Open reading"
+
+    card_sections: list[str] = []
+    for i, dc in enumerate(drawn_cards):
+        orientation = "reversed" if dc.is_reversed else "upright"
+        keywords_str = ", ".join(dc.active_keywords)
+        card_sections.append(
+            f"### Position {i + 1}: {dc.position_label}\n"
+            f"Card: {dc.card.name} ({orientation})\n"
+            f"Keywords: {keywords_str}\n"
+            f"Meaning: {dc.active_meaning}"
+        )
+
+    cards_block = "\n\n".join(card_sections)
+
+    return (
+        f"You are an expert tarot reader.\n\n"
+        f"## Spread: {spread.name}\n"
+        f"## Question: {question_str}\n\n"
+        f"## Cards Drawn\n\n"
+        f"{cards_block}\n\n"
+        f"## Your Task\n"
+        f"Interpret each card in its positional context and provide a reading for the seeker."
     )

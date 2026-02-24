@@ -76,6 +76,31 @@ class TestReadSpread:
         ctx = read_spread("three_card")
         assert ctx.thematic_summary.strip()
 
+    def test_system_prompt_contains_full_meanings(self) -> None:
+        ctx = read_spread("three_card")
+        for dc in ctx.drawn_cards:
+            assert dc.active_meaning in ctx.system_prompt_injection, (
+                f"active_meaning for {dc.card.name} missing from system_prompt_injection"
+            )
+
+    def test_system_prompt_contains_thematic_summary(self) -> None:
+        ctx = read_spread("single")
+        assert ctx.thematic_summary in ctx.system_prompt_injection
+
+    def test_system_prompt_contains_narrative_hints(self) -> None:
+        ctx = read_spread("three_card")
+        for hint in ctx.spread_narrative_hints:
+            assert hint in ctx.system_prompt_injection, (
+                f"Narrative hint missing from system_prompt_injection: {hint!r}"
+            )
+
+    def test_system_prompt_contains_numerology_notes(self) -> None:
+        ctx = read_spread("celtic_cross")
+        for note in ctx.numerology_notes:
+            assert note in ctx.system_prompt_injection, (
+                f"Numerology note missing from system_prompt_injection: {note!r}"
+            )
+
     def test_reading_timestamp_is_iso8601(self) -> None:
         from datetime import datetime
         ctx = read_spread("single")

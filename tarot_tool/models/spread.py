@@ -33,3 +33,4 @@ class SpreadResult(BaseModel):
     spread: SpreadDefinition
     drawn_cards: list[DrawnCard]
     question: Optional[str] = None
+    interpretation_prompt: str = ""  # Ready-to-use LLM context for interpreting this draw

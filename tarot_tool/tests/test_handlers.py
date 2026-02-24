@@ -48,6 +48,31 @@ class TestToolHandlers:
         assert result["success"] is True
         assert result["data"]["question"] == "What should I focus on?"
 
+    def test_draw_handler_has_interpretation_prompt(self) -> None:
+        result = TOOL_HANDLERS["draw_tarot_cards"]({"spread_id": "three_card"})
+        assert result["success"] is True
+        data = result["data"]
+        assert "interpretation_prompt" in data
+        assert data["interpretation_prompt"].strip(), "interpretation_prompt is empty"
+
+    def test_draw_handler_interpretation_prompt_contains_card_names(self) -> None:
+        result = TOOL_HANDLERS["draw_tarot_cards"]({"spread_id": "three_card"})
+        assert result["success"] is True
+        prompt = result["data"]["interpretation_prompt"]
+        for dc in result["data"]["drawn_cards"]:
+            assert dc["card"]["name"] in prompt, (
+                f"Card name {dc['card']['name']!r} missing from interpretation_prompt"
+            )
+
+    def test_draw_handler_interpretation_prompt_contains_position_labels(self) -> None:
+        result = TOOL_HANDLERS["draw_tarot_cards"]({"spread_id": "three_card"})
+        assert result["success"] is True
+        prompt = result["data"]["interpretation_prompt"]
+        for dc in result["data"]["drawn_cards"]:
+            assert dc["position_label"] in prompt, (
+                f"Position label {dc['position_label']!r} missing from interpretation_prompt"
+            )
+
     def test_draw_handler_bad_spread_returns_error(self) -> None:
         result = TOOL_HANDLERS["draw_tarot_cards"]({"spread_id": "nonexistent"})
         assert result["success"] is False
