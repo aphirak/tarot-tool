@@ -7,8 +7,9 @@ name        = "tarot_tool"
 version     = "0.1.0"
 description = "Tarot card reading tools for OpenClaw AI agents. Provides cryptographically secure card draws, rich RWS card meanings, 9 spread formats, and fully assembled LLM reading contexts."
 author      = "Aphirak JANSANG <aphirak.j@ku.ac.th>"
-entry_point = "tarot_tool.server:main"
-language    = "python"
+entry_point  = "tarot_tool.server:main"
+python_skill = "tarot_tool.tool:TarotSkill"
+language     = "python"
 requires_python = ">=3.11"
 
 [[skill.tools]]
