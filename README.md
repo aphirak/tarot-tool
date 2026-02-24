@@ -24,7 +24,7 @@ Give your AI agent the ability to draw tarot cards, look up rich card meanings, 
 | **9 spread formats** | Single, Three-Card, Celtic Cross, Horseshoe, Relationship, Year Ahead, Chakra, Decision Making, and dynamic Custom spreads |
 | **CSPRNG shuffle** | `secrets.SystemRandom()` + Fisher-Yates — cryptographically secure, no duplicates |
 | **LLM-ready output** | `ReadingContext.system_prompt_injection` is a complete, self-contained system prompt with full card meanings, thematic context, numerology notes, and narrative guidance — ready to prepend to any LLM call. `SpreadResult.interpretation_prompt` provides the same for raw draws. |
-| **OpenClaw-native** | 4 registered tools with `input_schema` definitions, `tool_handler()` wrappers, and a stdio skill server |
+| **OpenClaw-native** | 4 registered tools with `input_schema` definitions, `tool_handler()` wrappers, a stdio skill server, and a `TarotSkill` Python class for direct in-process calls |
 
 ---
 
@@ -47,18 +47,19 @@ pip install -e ".[dev]"
 
 ## OpenClaw Setup
 
-### 1. Register the skill
+> **Full integration reference:** see [`SKILL.md`](SKILL.md)
 
-Add the manifest path to your OpenClaw config:
+The skill supports two integration modes. Use whichever fits your OpenClaw runtime.
+
+### Mode A — Stdio subprocess
+
+Register the manifest and OpenClaw spawns `tarot-tool` as a subprocess:
 
 ```toml
+# openclaw.toml
 [[skills]]
 manifest = "/path/to/tarot-tool/tarot_tool.toml"
 ```
-
-### 2. Protocol
-
-The skill runs as a subprocess and speaks newline-delimited JSON over stdio:
 
 ```bash
 # OpenClaw launches:
@@ -73,7 +74,35 @@ tarot-tool
 {"id": "2", "result": {"success": true, "data": { ...ReadingContext... }}}
 ```
 
-### 3. Available tools
+### Mode B — Python direct import
+
+OpenClaw imports `TarotSkill` and calls tools in-process — no subprocess overhead:
+
+```python
+from tarot_tool.tool import TarotSkill
+
+skill = TarotSkill()
+
+# Discover tools
+definitions = skill.get_tool_definitions()
+
+# Call tools directly
+result = skill.read_spread(spread_id="celtic_cross", question="What do I need to know?")
+result = skill.draw_tarot_cards(spread_id="three_card")
+result = skill.get_card_meaning("The Tower")
+result = skill.list_spread_formats()
+```
+
+The manifest declares both entry points:
+
+```toml
+# tarot_tool.toml
+[skill]
+entry_point  = "tarot_tool.server:main"    # stdio subprocess
+python_skill = "tarot_tool.tool:TarotSkill" # Python direct import
+```
+
+### Available tools
 
 | Tool | Description |
 |---|---|
@@ -232,38 +261,59 @@ print(result.interpretation_prompt)  # full card meanings + positional context
 
 ---
 
-## Python Library Usage
+## Python Usage
+
+### OpenClaw skill class (recommended)
+
+```python
+from tarot_tool.tool import TarotSkill
+
+skill = TarotSkill()
+
+# Full reading — all methods return {"success": bool, "data": ...}
+result = skill.read_spread(
+    spread_id="celtic_cross",
+    question="What do I need to know?",
+    reading_style="spiritual",
+)
+print(result["data"]["system_prompt_injection"])
+
+# Draw cards only
+result = skill.draw_tarot_cards(spread_id="three_card", question="Where am I headed?")
+for card in result["data"]["drawn_cards"]:
+    print(f"[{card['position_label']}] {card['card']['name']}")
+
+# Look up a card
+result = skill.get_card_meaning("The Moon", orientation="both")
+print(result["data"]["meaning_upright"])
+
+# Generic dispatcher — same as calling a method by name
+result = skill.call_tool("list_spread_formats", {"include_positions": False})
+```
+
+### Low-level function API
 
 ```python
 from tarot_tool.tools import read_spread, draw_tarot_cards, get_card_meaning
 
-# Full LLM reading
+# Returns Pydantic models directly (not wrapped in success/data)
 ctx = read_spread("celtic_cross", question="What do I need to know?", reading_style="spiritual")
 print(ctx.system_prompt_injection)
 
-# Draw cards only — interpretation_prompt gives full context for the raw draw
 result = draw_tarot_cards("three_card", question="Where am I headed?")
 for card in result.drawn_cards:
     print(f"[{card.position_label}] {card.card.name} {'(R)' if card.is_reversed else ''}")
-print(result.interpretation_prompt)  # full card meanings + positional context
-
-# Look up a card
-info = get_card_meaning("The Moon", orientation="both")
-print(info["meaning_upright"])
+print(result.interpretation_prompt)
 ```
 
-### Programmatic tool calls (OpenClaw style)
+### Stdio dispatcher (server.py)
 
 ```python
 from tarot_tool.server import call_tool, get_tool_definitions
 
-tools = get_tool_definitions()
-
 result = call_tool("read_spread", {"spread_id": "horseshoe", "reading_style": "combined"})
 if result["success"]:
     print(result["data"]["system_prompt_injection"])
-else:
-    print("Error:", result["error"])
 ```
 
 ---
@@ -274,8 +324,10 @@ else:
 tarot-tool/
 ├── tarot_tool.toml              # OpenClaw skill manifest
 ├── pyproject.toml               # Python packaging + dev tools
+├── SKILL.md                     # OpenClaw skill integration guide
 └── tarot_tool/
     ├── server.py                # OpenClaw stdio skill server
+    ├── tool.py                  # TarotSkill Python class (direct import mode)
     ├── cli.py                   # User CLI: tarot spreads/read/draw/meaning
     ├── models/
     │   ├── card.py              # TarotCard, DrawnCard, Suit

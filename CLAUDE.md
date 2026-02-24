@@ -6,7 +6,8 @@
 
 - 78-card Rider-Waite-Smith deck with full meanings
 - 9 spread formats
-- OpenClaw MCP skill interface (stdio JSON protocol)
+- OpenClaw skill interface — stdio JSON protocol (`server.py`) and Python direct import (`tool.py`)
+- `TarotSkill` class for in-process OpenClaw calls without a subprocess
 - User-facing CLI (`tarot` command)
 - 127 tests, ~95% coverage
 
@@ -16,14 +17,16 @@
 
 ```
 tarot-tool/
-├── tarot_tool.toml              # OpenClaw skill manifest
+├── tarot_tool.toml              # OpenClaw skill manifest (entry_point + python_skill)
 ├── pyproject.toml               # Python packaging, dev tools, CLI entry points
 ├── README.md                    # Developer & OpenClaw integration docs
+├── SKILL.md                     # OpenClaw skill integration guide (both modes)
 ├── User.md                      # End-user CLI guide
 ├── .gitignore
 └── tarot_tool/
-    ├── __init__.py              # Package version (__version__ = "0.1.0")
+    ├── __init__.py              # Package version + TarotSkill export
     ├── server.py                # OpenClaw stdio skill server + call_tool()
+    ├── tool.py                  # TarotSkill class — Python direct import mode
     ├── cli.py                   # User CLI: tarot spreads/read/draw/meaning
     ├── models/
     │   ├── card.py              # TarotCard, DrawnCard, Suit
@@ -99,6 +102,30 @@ Runs as a subprocess, communicates via line-delimited JSON over stdio:
 {"id": "1", "result": [...tool definitions...]}
 {"id": "2", "result": {"success": true, "data": {...ReadingContext...}}}
 ```
+
+### OpenClaw Python Skill (`TarotSkill`)
+
+Import and call directly — no subprocess, no JSON serialization:
+
+```python
+from tarot_tool.tool import TarotSkill
+
+skill = TarotSkill()
+skill.get_tool_definitions()          # list[dict] — all 4 tool schemas
+skill.call_tool(name, params)         # generic dispatcher
+skill.draw_tarot_cards(spread_id=...) # named method
+skill.read_spread(spread_id=...)      # named method
+skill.get_card_meaning(card_name=...) # named method
+skill.list_spread_formats()           # named method
+```
+
+`tarot_tool.toml` declares both modes:
+```toml
+entry_point  = "tarot_tool.server:main"     # stdio subprocess
+python_skill = "tarot_tool.tool:TarotSkill" # Python direct import
+```
+
+See `SKILL.md` for the full integration reference.
 
 ---
 
