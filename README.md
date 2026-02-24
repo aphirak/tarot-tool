@@ -1,18 +1,18 @@
 # tarot-tool
 
-A production-grade Python tarot card tool system built for **OpenClaw MCP** (Model Context Protocol) integration. Enables LLMs to draw cards with cryptographically secure randomness, retrieve rich card meanings, and compose structured reading contexts for any spread format.
+> Production-grade Python tarot card system for [OpenClaw](https://openclaw.ai) MCP (Model Context Protocol) integration.
+
+Give your AI agent the ability to draw tarot cards, look up rich card meanings, and deliver fully structured reading contexts — all with cryptographically secure randomness and zero external dependencies.
 
 ---
 
-## Features
+## What it does
 
-- **78-card deck** — Full Rider-Waite-Smith corpus: all 22 Major Arcana and 56 Minor Arcana with upright/reversed meanings, keywords, elements, astrology, and numerology
-- **Cryptographically secure draws** — Uses `secrets.SystemRandom()` + Fisher-Yates shuffle; no `random.Random` in production paths
-- **9 built-in spreads** — Single, Three-Card, Celtic Cross, Horseshoe, Relationship, Year Ahead, Chakra, Decision, and fully dynamic Custom spreads
-- **4 OpenClaw tools** — Drop-in tool definitions with JSON schemas ready for MCP registration
-- **LLM-ready context** — `ReadingContext` payload includes elemental analysis, numerology notes, thematic summary, and a pre-built `system_prompt_injection` string
-- **Pydantic v2 models** — Fully validated, type-safe data throughout
-- **Zero external dependencies at runtime** — All card data embedded in Python; no file I/O, no network calls
+- **Draws cards** from a complete 78-card Rider-Waite-Smith deck using `secrets.SystemRandom()` + Fisher-Yates shuffle
+- **Returns rich meanings** — every card has upright/reversed paragraphs, 5–8 keywords, element, astrology, and numerology
+- **Supports 9 spread formats** — Single, Three-Card, Celtic Cross, Horseshoe, Relationship, Year Ahead, Chakra, Decision Making, and fully dynamic Custom spreads
+- **Assembles LLM context** — `ReadingContext` includes elemental balance, numerology notes, thematic summary, and a ready-to-inject `system_prompt_injection` string
+- **OpenClaw-ready** — 4 registered tools with `input_schema` definitions, `tool_handler()` wrappers, and a stdio skill server
 
 ---
 
@@ -26,128 +26,85 @@ A production-grade Python tarot card tool system built for **OpenClaw MCP** (Mod
 ## Installation
 
 ```bash
-# Standard install
-pip install tarot-tool
-
-# From source (recommended for development)
-git clone https://github.com/your-org/tarot-tool.git
+# From source
+git clone https://github.com/aphirak/tarot-tool.git
 cd tarot-tool
 pip install -e ".[dev]"
 ```
 
 ---
 
-## Quick Start
+## OpenClaw Skill Setup
 
-### Draw cards for a spread
+### 1. Register the skill
 
-```python
-from tarot_tool.tools import draw_tarot_cards
+Point OpenClaw to `tarot_tool.toml` in your skills directory, or add the entry point directly to your OpenClaw config:
 
-result = draw_tarot_cards("celtic_cross", question="What do I need to know right now?")
-
-for card in result.drawn_cards:
-    orientation = "reversed" if card.is_reversed else "upright"
-    print(f"[{card.position_label}] {card.card.name} ({orientation})")
-    print(f"  → {', '.join(card.active_keywords)}")
+```toml
+# In your OpenClaw config
+[[skills]]
+manifest = "/path/to/tarot-tool/tarot_tool.toml"
 ```
 
-### Perform a full LLM reading
+### 2. How OpenClaw communicates with the skill
 
-```python
-from tarot_tool.tools import read_spread
+The skill runs as a subprocess and speaks newline-delimited JSON over stdio:
 
-ctx = read_spread(
-    "three_card",
-    question="What path should I take?",
-    reading_style="psychological",
-)
+```bash
+# OpenClaw launches:
+tarot-tool
 
-# Ready-to-use system prompt for any LLM
-print(ctx.system_prompt_injection)
+# Sends over stdin:
+{"id": "1", "method": "list_tools"}
+{"id": "2", "method": "call_tool", "params": {"name": "read_spread", "input": {"spread_id": "celtic_cross", "question": "What do I need to know?"}}}
 
-# Elemental balance of the draw
-print(ctx.element_distribution)  # e.g. {"Fire": 2, "Water": 1}
-
-# Thematic summary auto-generated from drawn cards
-print(ctx.thematic_summary)
+# Skill responds over stdout:
+{"id": "1", "result": [ ...tool definitions... ]}
+{"id": "2", "result": {"success": true, "data": { ...ReadingContext... }}}
 ```
 
-### Look up a card's meaning
+### 3. Available tools
 
-```python
-from tarot_tool.tools import get_card_meaning
-
-info = get_card_meaning("The Tower", orientation="both")
-print(info["meaning_upright"])
-print(info["meaning_reversed"])
-print(info["keywords_upright"])
-```
-
-### List available spreads
-
-```python
-from tarot_tool.tools import list_spread_formats
-
-spreads = list_spread_formats(include_positions=True)
-for s in spreads:
-    print(f"{s['id']:15} — {s['name']} ({s['card_count']} cards)")
-```
-
-### Custom spread
-
-```python
-from tarot_tool.tools import read_spread
-
-ctx = read_spread(
-    "custom",
-    custom_positions=["Mind", "Body", "Spirit", "Shadow"],
-    question="Where am I out of balance?",
-    reading_style="spiritual",
-)
-```
+| Tool | Description |
+|---|---|
+| `draw_tarot_cards` | Draw cards for a spread; returns full card metadata |
+| `get_card_meaning` | Look up upright/reversed meanings for any card by name |
+| `list_spread_formats` | Enumerate all spread formats with position descriptions |
+| `read_spread` | Full reading — draws cards + builds LLM-ready `ReadingContext` |
 
 ---
 
-## OpenClaw MCP Integration
+## Tool Reference
 
-Register all four tools with your OpenClaw server in one line:
-
-```python
-from tarot_tool.tools import ALL_TOOLS
-# ALL_TOOLS is a list of JSON-schema tool definitions ready for MCP registration
-```
-
-### Available tools
-
-| Tool name | Description |
-|---|---|
-| `draw_tarot_cards` | Draw cards for a spread; returns `SpreadResult` with full card metadata |
-| `get_card_meaning` | Look up upright/reversed meanings for any card by name |
-| `list_spread_formats` | Enumerate all available spread formats with position descriptions |
-| `read_spread` | Full reading: draws cards + assembles `ReadingContext` for LLM interpretation |
-
-#### `draw_tarot_cards`
+### `draw_tarot_cards`
 
 ```json
 {
-  "spread_id": "string",
-  "question": "string (optional)",
+  "spread_id": "celtic_cross",
+  "question": "What do I need to know?",
   "reversal_probability": 0.35,
-  "custom_positions": ["label1", "label2"]
+  "custom_positions": ["Mind", "Body", "Spirit"]
 }
 ```
 
-#### `get_card_meaning`
+Returns a `SpreadResult` with the drawn cards, their positions, orientations, and active meanings.
+
+---
+
+### `get_card_meaning`
 
 ```json
 {
-  "card_name": "The Moon",
-  "orientation": "upright | reversed | both"
+  "card_name": "The Tower",
+  "orientation": "both"
 }
 ```
 
-#### `list_spread_formats`
+`orientation` accepts `"upright"`, `"reversed"`, or `"both"`. Supports partial, case-insensitive name matching.
+
+---
+
+### `list_spread_formats`
 
 ```json
 {
@@ -155,16 +112,48 @@ from tarot_tool.tools import ALL_TOOLS
 }
 ```
 
-#### `read_spread`
+Returns all 9 spread definitions including per-position labels and guidance text.
+
+---
+
+### `read_spread`
 
 ```json
 {
-  "spread_id": "celtic_cross",
-  "question": "string (optional)",
+  "spread_id": "three_card",
+  "question": "What path should I take?",
   "reversal_probability": 0.35,
-  "reading_style": "psychological | spiritual | practical | combined"
+  "reading_style": "psychological"
 }
 ```
+
+`reading_style` accepts `"psychological"`, `"spiritual"`, `"practical"`, or `"combined"`.
+
+Returns a `ReadingContext` — see below.
+
+---
+
+## ReadingContext
+
+`read_spread` returns a fully assembled payload for LLM interpretation:
+
+```python
+{
+  "spread_name": "Past / Present / Future",
+  "question": "What path should I take?",
+  "reading_style": "psychological",
+  "drawn_cards": [ ...DrawnCard objects... ],
+  "spread_narrative_hints": [ ...per-position guidance strings... ],
+  "thematic_summary": "Minor Arcana predominate, focusing on practical circumstances. The dominant energy is cups, highlighting emotion, intuition, and relationships.",
+  "element_distribution": {"Water": 2, "Fire": 1},
+  "numerology_notes": [ "The Hermit (numerology 9): completion, wisdom, and humanitarianism" ],
+  "dominant_suit": "cups",
+  "reading_timestamp": "2026-02-24T10:30:00+00:00",
+  "system_prompt_injection": "You are reading a psychological tarot spread (Past / Present / Future).\nThe seeker asks: \"What path should I take?\"\nCards drawn:\n  1. Past: The Hermit (upright) — solitude, wisdom, introspection\n  2. Present: Five of Cups (reversed) — acceptance, moving on, healing\n  3. Future: Ace of Wands (upright) — inspiration, new venture, spark\nElemental balance: Fire: 1, Water: 2\nDominant theme: Cups\nInterpret each card in its positional context. Note interactions between cards."
+}
+```
+
+The `system_prompt_injection` field is ready to prepend to any LLM system prompt.
 
 ---
 
@@ -184,37 +173,39 @@ from tarot_tool.tools import ALL_TOOLS
 
 ---
 
-## ReadingContext payload
-
-The `read_spread` tool returns a `ReadingContext` object containing:
+## Using as a Python library
 
 ```python
-class ReadingContext(BaseModel):
-    spread_name: str
-    question: Optional[str]
-    reading_style: str
-    drawn_cards: list[DrawnCard]          # Full card data + positional context
-    spread_narrative_hints: list[str]     # Per-position interpretation guidance
-    thematic_summary: str                 # Auto-generated from card composition
-    element_distribution: dict[str, int]  # Fire/Water/Air/Earth counts
-    numerology_notes: list[str]           # Numerological significance per card
-    dominant_suit: Optional[str]          # Most represented suit/element
-    reading_timestamp: str                # ISO 8601
-    system_prompt_injection: str          # Ready-to-use LLM system prompt fragment
+from tarot_tool.tools import read_spread, draw_tarot_cards, get_card_meaning
+
+# Full LLM reading
+ctx = read_spread("celtic_cross", question="What do I need to know?", reading_style="spiritual")
+print(ctx.system_prompt_injection)
+
+# Draw cards only
+result = draw_tarot_cards("three_card", question="Where am I headed?")
+for card in result.drawn_cards:
+    print(f"[{card.position_label}] {card.card.name} {'(R)' if card.is_reversed else ''}")
+
+# Look up a card
+info = get_card_meaning("The Moon", orientation="both")
+print(info["meaning_upright"])
 ```
 
-The `system_prompt_injection` field is fully formatted and ready to prepend to any LLM conversation:
+### Call tools programmatically (OpenClaw style)
 
-```
-You are reading a psychological tarot spread (Celtic Cross).
-The seeker asks: "What do I need to know right now?"
-Cards drawn:
-  1. The Heart of the Matter: The Tower — sudden change, upheaval, revelation
-  2. The Crossing Card: Nine of Cups — contentment, satisfaction, wish fulfilled
-  ...
-Elemental balance: Air: 3, Fire: 2, Water: 4, Earth: 1
-Dominant theme: Cups
-Interpret each card in its positional context. Note interactions between cards.
+```python
+from tarot_tool.server import call_tool, get_tool_definitions
+
+# List tools
+tools = get_tool_definitions()
+
+# Call a tool
+result = call_tool("read_spread", {"spread_id": "horseshoe", "reading_style": "combined"})
+if result["success"]:
+    print(result["data"]["system_prompt_injection"])
+else:
+    print("Error:", result["error"])
 ```
 
 ---
@@ -222,41 +213,46 @@ Interpret each card in its positional context. Note interactions between cards.
 ## Project Structure
 
 ```
-tarot_tool/
-├── models/
-│   ├── card.py           # TarotCard, DrawnCard, Suit
-│   ├── spread.py         # SpreadDefinition, SpreadResult, PositionDefinition
-│   └── reading.py        # ReadingContext
-├── cards/
-│   ├── major_arcana.py   # 22 Major Arcana data
-│   ├── minor_arcana.py   # 56 Minor Arcana data (all four suits)
-│   ├── deck.py           # get_deck() — cached full 78-card deck
-│   └── meanings.py       # Name-indexed meaning lookup
-├── engine/
-│   ├── rng.py            # draw_cards() — CSPRNG + Fisher-Yates
-│   ├── shuffle.py        # shuffle_deck()
-│   └── context_builder.py # build_reading_context()
-├── spreads/
-│   ├── registry.py       # get_spread(), list_spreads()
-│   ├── single.py
-│   ├── three_card.py
-│   ├── celtic_cross.py
-│   ├── horseshoe.py
-│   ├── relationship.py
-│   ├── year_ahead.py
-│   ├── chakra.py
-│   ├── decision.py
-│   └── custom.py         # build_custom_spread()
-├── tools/
-│   ├── draw_cards.py     # draw_tarot_cards()
-│   ├── get_meaning.py    # get_card_meaning()
-│   ├── list_spreads.py   # list_spread_formats()
-│   └── read_spread.py    # read_spread()
-└── tests/
-    ├── test_deck.py
-    ├── test_rng.py
-    ├── test_spreads.py
-    └── test_context.py
+tarot-tool/
+├── tarot_tool.toml              # OpenClaw skill manifest
+├── pyproject.toml               # Python packaging + dev tools
+├── tarot_tool/
+│   ├── server.py                # OpenClaw stdio skill server
+│   ├── models/
+│   │   ├── card.py              # TarotCard, DrawnCard, Suit
+│   │   ├── spread.py            # SpreadDefinition, SpreadResult
+│   │   └── reading.py           # ReadingContext
+│   ├── cards/
+│   │   ├── major_arcana.py      # 22 Major Arcana (full RWS corpus)
+│   │   ├── minor_arcana.py      # 56 Minor Arcana (all four suits)
+│   │   ├── deck.py              # get_deck() — cached 78-card list
+│   │   └── meanings.py          # Name-indexed meaning lookup
+│   ├── engine/
+│   │   ├── rng.py               # CSPRNG draw + Fisher-Yates shuffle
+│   │   ├── shuffle.py           # shuffle_deck()
+│   │   └── context_builder.py   # ReadingContext assembly
+│   ├── spreads/
+│   │   ├── registry.py          # get_spread(), list_spreads()
+│   │   ├── single.py
+│   │   ├── three_card.py
+│   │   ├── celtic_cross.py
+│   │   ├── horseshoe.py
+│   │   ├── relationship.py
+│   │   ├── year_ahead.py
+│   │   ├── chakra.py
+│   │   ├── decision.py
+│   │   └── custom.py
+│   ├── tools/
+│   │   ├── draw_cards.py        # draw_tarot_cards + tool_handler()
+│   │   ├── get_meaning.py       # get_card_meaning + tool_handler()
+│   │   ├── list_spreads.py      # list_spread_formats + tool_handler()
+│   │   └── read_spread.py       # read_spread + tool_handler()
+│   └── tests/
+│       ├── test_deck.py
+│       ├── test_rng.py
+│       ├── test_spreads.py
+│       ├── test_context.py
+│       └── test_handlers.py
 ```
 
 ---
@@ -267,10 +263,10 @@ tarot_tool/
 # Install with dev dependencies
 pip install -e ".[dev]"
 
-# Run tests
+# Run all tests
 python3.11 -m pytest tarot_tool/tests/ -v
 
-# Run tests with coverage report
+# Coverage report
 python3.11 -m pytest tarot_tool/tests/ --cov=tarot_tool --cov-report=term-missing
 
 # Lint
@@ -283,39 +279,19 @@ black tarot_tool/
 mypy tarot_tool/
 ```
 
-### Test coverage
-
-```
-TOTAL    728 stmts    95% coverage
-64 tests passing
-```
-
-### Adding a new spread
-
-1. Create `tarot_tool/spreads/my_spread.py` defining a `SpreadDefinition`
-2. Import and add it to `_REGISTRY` in `tarot_tool/spreads/registry.py`
-3. Add a card count entry to the test in `test_spreads.py`
-
-### Adding or editing card meanings
-
-Card data lives in plain Python dicts — no database, no files to load:
-
-- **Major Arcana**: `tarot_tool/cards/major_arcana.py` — `MAJOR_ARCANA: list[dict]`
-- **Minor Arcana**: `tarot_tool/cards/minor_arcana.py` — `MINOR_ARCANA: list[dict]`
-
-After editing, the `get_deck()` LRU cache will reflect changes on the next process start.
+**Test coverage:** 88 tests, 93% coverage.
 
 ---
 
-## Design principles
+## Design notes
 
-- **No shared mutable state** — all tool functions are pure with respect to side effects; safe for concurrent use
-- **No runtime I/O** — card data is embedded in Python constants; no disk reads, no network calls
-- **CSPRNG only** — `secrets.SystemRandom()` for all production draws; the seeded path (`seed=int`) exists only for deterministic testing
-- **Fail loudly** — invalid spread IDs, unknown card names, and bad orientation values raise immediately with clear messages
+- **No shared mutable state** — all tool functions are pure with respect to side effects; safe for concurrent calls
+- **No runtime I/O** — all 78 cards are embedded Python constants; no disk reads, no network calls
+- **CSPRNG only** — `secrets.SystemRandom()` for all production draws; seeded `random.Random` exists only for deterministic testing
+- **Never raises in handlers** — every `tool_handler()` catches all exceptions and returns `{"success": false, "error": "..."}` instead
 
 ---
 
 ## License
 
-MIT
+MIT — Aphirak JANSANG
