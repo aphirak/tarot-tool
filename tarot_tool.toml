@@ -14,24 +14,101 @@ requires_python = ">=3.11"
 
 [[skill.tools]]
 name        = "draw_tarot_cards"
-description = "Draw tarot cards for a reading. Returns drawn cards with full metadata and meanings."
+description = "Draw tarot cards for a reading. Returns drawn cards with full metadata and meanings. Use list_spread_formats to enumerate available spread IDs."
+
+[skill.tools.input_schema]
+type     = "object"
+required = ["spread_id"]
+
+[skill.tools.input_schema.properties.spread_id]
+type        = "string"
+description = "Spread format ID (use list_spread_formats to enumerate)."
+
+[skill.tools.input_schema.properties.question]
+type        = "string"
+description = "Optional question or context for the reading."
+
+[skill.tools.input_schema.properties.reversal_probability]
+type        = "number"
+description = "Probability each card is reversed (0.0–1.0, default 0.35)."
+default     = 0.35
+
+[skill.tools.input_schema.properties.custom_positions]
+type        = "array"
+description = "Position labels for a custom spread (required when spread_id='custom')."
+
+[skill.tools.input_schema.properties.custom_positions.items]
+type = "string"
 
 [[skill.tools]]
 name        = "get_card_meaning"
-description = "Retrieve full meaning, keywords, and metadata for a specific tarot card."
+description = "Retrieve full meaning, keywords, and metadata for a specific tarot card. Supports exact name match or partial/case-insensitive search."
+
+[skill.tools.input_schema]
+type     = "object"
+required = ["card_name"]
+
+[skill.tools.input_schema.properties.card_name]
+type        = "string"
+description = "Exact card name or partial match (case-insensitive)."
+
+[skill.tools.input_schema.properties.orientation]
+type        = "string"
+enum        = ["upright", "reversed", "both"]
+description = "Which orientation meaning(s) to return."
+default     = "both"
 
 [[skill.tools]]
 name        = "list_spread_formats"
 description = "List all available tarot spread formats with position descriptions."
 
+[skill.tools.input_schema]
+type     = "object"
+required = []
+
+[skill.tools.input_schema.properties.include_positions]
+type        = "boolean"
+description = "Include per-position labels and guidance in the response."
+default     = true
+
 [[skill.tools]]
 name        = "read_spread"
-description = "Perform a complete tarot reading. Returns a structured ReadingContext with system_prompt_injection for LLM interpretation."
+description = "Perform a complete tarot reading. Returns a structured ReadingContext with all card meanings, elemental analysis, numerology, and a ready-to-use LLM system prompt."
+
+[skill.tools.input_schema]
+type     = "object"
+required = ["spread_id"]
+
+[skill.tools.input_schema.properties.spread_id]
+type        = "string"
+description = "Spread format ID."
+
+[skill.tools.input_schema.properties.question]
+type        = "string"
+description = "Optional question or focus for the reading."
+
+[skill.tools.input_schema.properties.reversal_probability]
+type        = "number"
+description = "Probability each card is reversed (0.0–1.0, default 0.35)."
+default     = 0.35
+
+[skill.tools.input_schema.properties.reading_style]
+type        = "string"
+enum        = ["psychological", "spiritual", "practical", "combined"]
+description = "Interpretive lens for the reading."
+default     = "combined"
+
+[skill.tools.input_schema.properties.custom_positions]
+type        = "array"
+description = "Position labels for a custom spread."
+
+[skill.tools.input_schema.properties.custom_positions.items]
+type = "string"
 
 [skill.install]
 # Run this after cloning to install the skill and its dependencies:
 #   pip install -e ".[dev]"
 # Or for production:
 #   pip install tarot-tool
-package = "tarot-tool"
+package  = "tarot-tool"
 editable = true
