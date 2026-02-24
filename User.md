@@ -173,22 +173,52 @@ tarot read --spread single --json
 ────────────────────────────────────────────────────────────
   LLM Prompt Injection
 ────────────────────────────────────────────────────────────
-  You are reading a combined tarot spread (Past / Present / Future).
-  The seeker asks: "What do I need to focus on this week?"
-  Cards drawn:
-    1. Past: The Hermit (upright) — solitude, inner guidance, introspection
-    2. Present: Five of Cups (reversed) — acceptance, moving on, forgiveness
-    3. Future: Ace of Wands (upright) — inspiration, new venture, potential
-  Elemental balance: Air: 1, Fire: 1, Water: 1
-  Dominant theme: None
-  Interpret each card in its positional context. Note interactions between cards.
+  You are an expert tarot reader performing a combined reading.
+
+  ## Spread: Past / Present / Future
+  ## Question: "What do I need to focus on this week?"
+
+  ## Cards Drawn
+
+  ### Position 1: Past
+  Card: The Hermit (upright)
+  Keywords: solitude, introspection, inner guidance, soul-searching, wisdom
+  Meaning: The Hermit holds his lantern aloft not to guide others, but to
+  illuminate his own path inward...
+
+  ### Position 2: Present
+  Card: Five of Cups (reversed)
+  Keywords: acceptance, moving on, forgiveness, finding silver lining, recovery
+  Meaning: Reversed, the Five of Cups signals that healing is underway—you are
+  beginning to turn away from grief and toward what remains...
+
+  ### Position 3: Future
+  Card: Ace of Wands (upright)
+  Keywords: inspiration, new venture, potential, creativity, enthusiasm, spark
+  Meaning: The Ace of Wands bursts with raw creative energy—a divine spark of
+  inspiration that heralds bold new beginnings...
+
+  ## Thematic Context
+  A balanced mix of Major and Minor Arcana suggests both fate and free will are active.
+  Element distribution: Air: 1, Fire: 1, Water: 1
+  The Hermit (numerology 9): completion, wisdom, and humanitarianism
+
+  ## Spread Narrative Guidance
+  - Position 1 (Past): The Hermit (upright) — reflect on what wisdom solitude has built
+  - Position 2 (Present): Five of Cups (reversed) — examine what you are releasing
+  - Position 3 (Future): Ace of Wands (upright) — step toward the creative spark ahead
+
+  ## Your Task
+  Provide the seeker with a cohesive interpretation. Address each card in its
+  positional context, weave the cards into a unified narrative, and note any
+  elemental or thematic patterns across the spread.
 ```
 
 ---
 
 ## `tarot draw` — Draw cards only
 
-Draws cards and shows their names and keywords — no interpretation, no LLM context. Useful for a quick look at what cards came up.
+Draws cards and shows their names and keywords. Useful for a quick look at what cards came up. When used with `--json`, the output also includes an `interpretation_prompt` field containing full card meanings and positional context — ready to feed to an LLM without running a full `read`.
 
 ### Syntax
 
@@ -324,12 +354,21 @@ tarot read --spread custom --positions "Option A,Option B,Outcome"
 tarot read --spread celtic_cross --question "What does 2026 hold for me?" > my_reading.txt
 ```
 
-**Feed the LLM prompt directly to a Claude one-liner:**
+**Feed the full LLM prompt from a complete reading:**
 ```bash
 tarot read --spread three_card --json | python3 -c "
 import json, sys
 ctx = json.load(sys.stdin)
 print(ctx['system_prompt_injection'])
+"
+```
+
+**Feed the LLM prompt from a raw draw (skips thematic analysis):**
+```bash
+tarot draw --spread three_card --json | python3 -c "
+import json, sys
+ctx = json.load(sys.stdin)
+print(ctx['interpretation_prompt'])
 "
 ```
 
