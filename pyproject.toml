@@ -43,6 +43,7 @@ ignore_missing_imports = true
 
 [project.scripts]
 tarot-tool = "tarot_tool.server:main"
+tarot = "tarot_tool.cli:main"
 
 [tool.hatch.build.targets.wheel]
 packages = ["tarot_tool"]
