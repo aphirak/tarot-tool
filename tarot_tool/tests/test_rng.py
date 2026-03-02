@@ -1,10 +1,11 @@
-"""Tests for the RNG draw engine."""
+"""Tests for the RNG draw engine and deck cut."""
 from __future__ import annotations
 
 import pytest
 
 from tarot_tool.cards.deck import get_deck
 from tarot_tool.engine.rng import draw_cards
+from tarot_tool.engine.shuffle import cut_deck
 
 
 class TestDrawCards:
@@ -97,3 +98,73 @@ class TestDrawCards:
         draw_cards(deck, count=10, seed=7)
         after_order = [card.id for card in deck]
         assert original_order == after_order, "draw_cards mutated the input deck"
+
+    def test_draw_unique_after_cut(self) -> None:
+        """Cards drawn after shuffle+cut must still be unique."""
+        deck = get_deck()
+        result = draw_cards(deck, count=10, seed=42)
+        ids = [card.id for card, _ in result]
+        assert len(ids) == len(set(ids)), "Duplicate cards after cut"
+
+
+class TestCutDeck:
+    def test_cut_preserves_all_cards(self) -> None:
+        deck = get_deck()
+        cut = cut_deck(deck, cut_point=20)
+        assert len(cut) == 78
+        assert {c.id for c in cut} == {c.id for c in deck}
+
+    def test_cut_reorders_deck(self) -> None:
+        deck = get_deck()
+        cut = cut_deck(deck, cut_point=20)
+        # First card of cut should be what was at index 20
+        assert cut[0].id == deck[20].id
+
+    def test_cut_wraps_correctly(self) -> None:
+        deck = get_deck()
+        cut = cut_deck(deck, cut_point=20)
+        # Last card of cut should be what was at index 19
+        assert cut[-1].id == deck[19].id
+
+    def test_cut_does_not_mutate_input(self) -> None:
+        deck = get_deck()
+        original_ids = [c.id for c in deck]
+        cut_deck(deck, cut_point=10)
+        assert [c.id for c in deck] == original_ids
+
+    def test_cut_point_1_edge(self) -> None:
+        deck = get_deck()
+        cut = cut_deck(deck, cut_point=1)
+        assert len(cut) == 78
+        assert cut[0].id == deck[1].id
+        assert cut[-1].id == deck[0].id
+
+    def test_cut_point_last_edge(self) -> None:
+        deck = get_deck()
+        cut = cut_deck(deck, cut_point=77)
+        assert len(cut) == 78
+        assert cut[0].id == deck[77].id
+        assert cut[-1].id == deck[76].id
+
+    def test_cut_point_clamped_below(self) -> None:
+        deck = get_deck()
+        cut = cut_deck(deck, cut_point=0)  # clamped to 1
+        assert cut[0].id == deck[1].id
+
+    def test_cut_point_clamped_above(self) -> None:
+        deck = get_deck()
+        cut = cut_deck(deck, cut_point=78)  # clamped to 77
+        assert cut[0].id == deck[77].id
+
+    def test_cut_single_card_deck(self) -> None:
+        """Deck with < 2 cards returns a plain copy — no cut possible."""
+        deck = get_deck()[:1]
+        cut = cut_deck(deck)
+        assert [c.id for c in cut] == [c.id for c in deck]
+
+    def test_cut_csprng_valid_result(self) -> None:
+        """CSPRNG cut (no cut_point) still returns a valid 78-card deck."""
+        deck = get_deck()
+        cut = cut_deck(deck)
+        assert len(cut) == 78
+        assert {c.id for c in cut} == {c.id for c in deck}

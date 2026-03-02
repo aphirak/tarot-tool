@@ -38,6 +38,9 @@ def draw_cards(
 
     rng = secrets.SystemRandom() if seed is None else _SeededRandom(seed)
     shuffled = _fisher_yates(list(deck), rng)
+    # Cut: simulate querent cut (สับ → ตัด → จับ)
+    cut_at = rng.randint(1, len(shuffled) - 1)
+    shuffled = shuffled[cut_at:] + shuffled[:cut_at]
     drawn = shuffled[:count]
 
     return [
