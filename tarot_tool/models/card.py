@@ -1,10 +1,9 @@
-"""Pydantic models for tarot cards."""
+"""Dataclass models for tarot cards."""
 from __future__ import annotations
 
+from dataclasses import dataclass
 from enum import Enum
 from typing import Optional
-
-from pydantic import BaseModel, field_validator
 
 
 class Suit(str, Enum):
@@ -15,7 +14,8 @@ class Suit(str, Enum):
     PENTACLES = "pentacles"
 
 
-class TarotCard(BaseModel):
+@dataclass
+class TarotCard:
     """A single tarot card with full metadata and meanings."""
 
     id: int  # 0–77
@@ -32,22 +32,17 @@ class TarotCard(BaseModel):
     numerology: Optional[int]
     image_key: str  # slug for image lookup
 
-    @field_validator("arcana")
-    @classmethod
-    def validate_arcana(cls, v: str) -> str:
-        if v not in ("major", "minor"):
+    def __post_init__(self) -> None:
+        if isinstance(self.suit, str):
+            self.suit = Suit(self.suit)
+        if self.arcana not in ("major", "minor"):
             raise ValueError("arcana must be 'major' or 'minor'")
-        return v
-
-    @field_validator("id")
-    @classmethod
-    def validate_id(cls, v: int) -> int:
-        if not (0 <= v <= 77):
+        if not (0 <= self.id <= 77):
             raise ValueError("id must be between 0 and 77")
-        return v
 
 
-class DrawnCard(BaseModel):
+@dataclass
+class DrawnCard:
     """A card drawn for a reading, with positional context."""
 
     card: TarotCard

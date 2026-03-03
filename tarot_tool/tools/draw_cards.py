@@ -1,6 +1,7 @@
 """OpenClaw Tool: draw_tarot_cards."""
 from __future__ import annotations
 
+import dataclasses
 from typing import Any, Optional
 
 from tarot_tool.cards.deck import get_deck
@@ -103,6 +104,6 @@ def tool_handler(params: dict[str, Any]) -> dict[str, Any]:
             reversal_probability=float(params.get("reversal_probability", 0.35)),
             custom_positions=params.get("custom_positions"),
         )
-        return {"success": True, "data": result.model_dump()}
+        return {"success": True, "data": dataclasses.asdict(result)}
     except Exception as e:
         return {"success": False, "error": str(e), "error_type": type(e).__name__}

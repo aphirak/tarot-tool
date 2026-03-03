@@ -1,14 +1,14 @@
-"""Pydantic models for tarot spreads."""
+"""Dataclass models for tarot spreads."""
 from __future__ import annotations
 
+from dataclasses import dataclass
 from typing import Optional
-
-from pydantic import BaseModel
 
 from tarot_tool.models.card import DrawnCard
 
 
-class PositionDefinition(BaseModel):
+@dataclass
+class PositionDefinition:
     """A single position in a spread layout."""
 
     index: int
@@ -16,7 +16,8 @@ class PositionDefinition(BaseModel):
     guidance: str  # Interpretation guidance for this position
 
 
-class SpreadDefinition(BaseModel):
+@dataclass
+class SpreadDefinition:
     """Definition of a spread format."""
 
     id: str
@@ -27,7 +28,8 @@ class SpreadDefinition(BaseModel):
     max_cards: int
 
 
-class SpreadResult(BaseModel):
+@dataclass
+class SpreadResult:
     """Result of performing a spread draw."""
 
     spread: SpreadDefinition

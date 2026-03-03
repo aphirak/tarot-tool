@@ -6,9 +6,9 @@
 
 [![Python 3.11+](https://img.shields.io/badge/python-3.11%2B-blue?style=flat-square)](https://www.python.org/downloads/)
 [![License: MIT](https://img.shields.io/badge/license-MIT-green?style=flat-square)](LICENSE)
-[![Tests](https://img.shields.io/badge/tests-127%20passing-brightgreen?style=flat-square)]()
-[![Coverage](https://img.shields.io/badge/coverage-95%25-brightgreen?style=flat-square)]()
-[![Pydantic v2](https://img.shields.io/badge/pydantic-v2-red?style=flat-square)](https://docs.pydantic.dev/latest/)
+[![Tests](https://img.shields.io/badge/tests-138%20passing-brightgreen?style=flat-square)]()
+[![Coverage](https://img.shields.io/badge/coverage-94%25-brightgreen?style=flat-square)]()
+[![No dependencies](https://img.shields.io/badge/dependencies-none-brightgreen?style=flat-square)]()
 
 Give your AI agent the ability to draw tarot cards, look up rich card meanings, and deliver fully structured reading contexts — with cryptographically secure randomness and zero external dependencies.
 
@@ -30,8 +30,7 @@ Give your AI agent the ability to draw tarot cards, look up rich card meanings, 
 
 ## Requirements
 
-- Python >= 3.11
-- `pydantic >= 2.0`
+- Python >= 3.11 (standard library only — no third-party dependencies)
 
 ---
 
@@ -296,7 +295,7 @@ result = skill.call_tool("list_spread_formats", {"include_positions": False})
 ```python
 from tarot_tool.tools import read_spread, draw_tarot_cards, get_card_meaning
 
-# Returns Pydantic models directly (not wrapped in success/data)
+# Returns dataclass instances directly (not wrapped in success/data)
 ctx = read_spread("celtic_cross", question="What do I need to know?", reading_style="spiritual")
 print(ctx.system_prompt_injection)
 
@@ -387,7 +386,7 @@ black tarot_tool/
 mypy tarot_tool/
 ```
 
-**127 tests · 95% coverage**
+**138 tests · 94% coverage**
 
 ---
 

@@ -1,14 +1,14 @@
-"""Pydantic model for the full LLM reading context payload."""
+"""Dataclass model for the full LLM reading context payload."""
 from __future__ import annotations
 
+from dataclasses import dataclass
 from typing import Optional
-
-from pydantic import BaseModel
 
 from tarot_tool.models.card import DrawnCard
 
 
-class ReadingContext(BaseModel):
+@dataclass
+class ReadingContext:
     """Complete reading context payload for LLM interpretation."""
 
     spread_name: str

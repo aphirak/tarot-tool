@@ -2,14 +2,15 @@
 
 ## Project Status
 
-**Fully implemented and tested.** This document reflects the current state of the codebase as of 2026-02-24.
+**Fully implemented and tested.** This document reflects the current state of the codebase as of 2026-03-03.
 
 - 78-card Rider-Waite-Smith deck with full meanings
 - 9 spread formats
 - OpenClaw skill interface — stdio JSON protocol (`server.py`) and Python direct import (`tool.py`)
 - `TarotSkill` class for in-process OpenClaw calls without a subprocess
 - User-facing CLI (`tarot` command)
-- 127 tests, ~95% coverage
+- 138 tests, ~94% coverage
+- Zero third-party dependencies — standard library only (`dataclasses`, `enum`, `secrets`)
 
 ---
 
@@ -205,12 +206,13 @@ Tools use `input_schema` (not `parameters`). Each tool file exposes:
 
 ## Key Data Models
 
-### `TarotCard` (Pydantic v2)
+### `TarotCard` (dataclass)
 ```python
-class TarotCard(BaseModel):
+@dataclass
+class TarotCard:
     id: int                        # 0–77
     name: str
-    suit: Suit                     # Suit enum
+    suit: Suit                     # Suit enum; str coerced to Suit in __post_init__
     number: Optional[int]
     arcana: str                    # "major" | "minor"
     keywords_upright: list[str]
@@ -225,7 +227,8 @@ class TarotCard(BaseModel):
 
 ### `SpreadResult` (draw output)
 ```python
-class SpreadResult(BaseModel):
+@dataclass
+class SpreadResult:
     spread: SpreadDefinition
     drawn_cards: list[DrawnCard]
     question: Optional[str] = None
@@ -234,7 +237,8 @@ class SpreadResult(BaseModel):
 
 ### `ReadingContext` (LLM payload)
 ```python
-class ReadingContext(BaseModel):
+@dataclass
+class ReadingContext:
     spread_name: str
     question: Optional[str]
     reading_style: str
@@ -295,12 +299,13 @@ black tarot_tool/
 mypy tarot_tool/
 ```
 
-**Test results**: 127 tests, ~95% coverage.
+**Test results**: 138 tests, ~94% coverage.
 
 ---
 
 ## Design Constraints
 
+- No third-party dependencies — standard library only (`dataclasses`, `enum`, `secrets`, `json`)
 - No external API calls — all 78 cards embedded as Python constants
 - No file I/O at runtime — data loaded from module-level dicts
 - No shared mutable state — all tool functions are pure with respect to side effects

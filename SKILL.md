@@ -179,6 +179,8 @@ print(skill.description)  # "Tarot card reading tools for OpenClaw AI agents..."
 
 ## Installation
 
+No third-party dependencies — requires Python 3.11+ only.
+
 ```bash
 # Clone and install in editable mode
 git clone <repo>

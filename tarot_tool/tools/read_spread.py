@@ -1,6 +1,7 @@
 """OpenClaw Tool: read_spread — full reading context for LLM interpretation."""
 from __future__ import annotations
 
+import dataclasses
 from typing import Any, Literal, Optional
 
 from tarot_tool.cards.deck import get_deck
@@ -123,6 +124,6 @@ def tool_handler(params: dict[str, Any]) -> dict[str, Any]:
             reading_style=params.get("reading_style", "combined"),  # type: ignore[arg-type]
             custom_positions=params.get("custom_positions"),
         )
-        return {"success": True, "data": result.model_dump()}
+        return {"success": True, "data": dataclasses.asdict(result)}
     except Exception as e:
         return {"success": False, "error": str(e), "error_type": type(e).__name__}
